@@ -1,17 +1,19 @@
 {
   "name": "aegis",
-  "version": "1.0.0",
-  "description": "Harness security for Claude Code — 4 runtime hooks that block attacks your prompt can't see",
+  "version": "1.1.0",
+  "description": "Harness security for Claude Code — 6 runtime hooks that block attacks your prompt can't see",
   "homepage": "https://github.com/ftuga/aegis",
   "license": "AGPL-3.0",
-  "keywords": ["security", "claude-code", "agent", "hooks", "prompt-injection"],
+  "keywords": ["security", "claude-code", "agent", "hooks", "prompt-injection", "mcp"],
   "hooks": {
     "PostToolUse": [
-      {"matcher": "WebFetch|WebSearch|Read", "command": "hooks/injection-detector.sh"}
+      {"matcher": "WebFetch|WebSearch|Read|mcp__.*", "command": "hooks/injection-detector.sh"}
     ],
     "PreToolUse": [
       {"matcher": "Bash", "command": "hooks/network-egress.sh"},
-      {"matcher": "Write|Edit|MultiEdit|Bash", "command": "hooks/secrets-scanner.sh"}
+      {"matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash", "command": "hooks/secrets-scanner.sh"},
+      {"matcher": "Task", "command": "hooks/agent-spawn-guard.sh"},
+      {"matcher": "mcp__.*", "command": "hooks/mcp-interceptor.sh"}
     ]
   },
   "commands": [

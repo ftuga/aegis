@@ -31,6 +31,8 @@ elif tool_name in ("Edit",):
 elif tool_name in ("MultiEdit",):
     for e in tool_input.get("edits", []) or []:
         candidates.append(("new_string", e.get("new_string", "")))
+elif tool_name == "NotebookEdit":
+    candidates.append(("new_source", tool_input.get("new_source", "")))
 elif tool_name == "Bash":
     # Heredocs / echo > file / tee /append
     cmd = tool_input.get("command", "") or ""
@@ -52,7 +54,8 @@ def is_safe_target(path: str) -> bool:
                    "/fixtures/", "readme.md", "/docs/", ".gitignore",
                    # Helix internals (mismos hooks registran patrones)
                    "/.claude/helpers/", "/.claude/skills/",
-                   "/memory/injection-alerts.jsonl", "/memory/reflexions.jsonl"]:
+                   "/memory/injection-alerts.jsonl", "/memory/reflexions.jsonl",
+                   "/memory/agent-spawn.jsonl", "/memory/mcp-calls.jsonl"]:
         if marker in path_l: return True
     return False
 

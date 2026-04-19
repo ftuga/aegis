@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# aegis installer — registers 4 security hooks into ~/.claude/settings.json
+# aegis installer — registers 6 security hooks into ~/.claude/settings.json
 set -euo pipefail
 
 AEGIS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,7 +15,7 @@ echo -e "${BLUE}⬡ aegis installer${NC}"
 mkdir -p "$HELPERS" "$CONFIG" "$CLAUDE_DIR/data"
 
 # 1. copy hook scripts
-for f in injection-detector.sh network-egress.sh secrets-scanner.sh integrity-check.sh; do
+for f in injection-detector.sh network-egress.sh secrets-scanner.sh agent-spawn-guard.sh mcp-interceptor.sh integrity-check.sh; do
     cp "$AEGIS_DIR/hooks/$f" "$HELPERS/$f"
     chmod +x "$HELPERS/$f"
     echo -e "  ${GREEN}✓${NC} $f → $HELPERS/"
@@ -39,7 +39,7 @@ home = os.path.expanduser("~")
 
 hooks_to_add = {
     "PostToolUse": [
-        {"matcher": "WebFetch|WebSearch|Read",
+        {"matcher": "WebFetch|WebSearch|Read|mcp__.*",
          "hooks": [{"type": "command",
                     "command": f'bash "{home}/.claude/helpers/injection-detector.sh"'}]}
     ],
@@ -47,9 +47,15 @@ hooks_to_add = {
         {"matcher": "Bash",
          "hooks": [{"type": "command",
                     "command": f'bash "{home}/.claude/helpers/network-egress.sh"'}]},
-        {"matcher": "Write|Edit|MultiEdit|Bash",
+        {"matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
          "hooks": [{"type": "command",
-                    "command": f'bash "{home}/.claude/helpers/secrets-scanner.sh"'}]}
+                    "command": f'bash "{home}/.claude/helpers/secrets-scanner.sh"'}]},
+        {"matcher": "Task",
+         "hooks": [{"type": "command",
+                    "command": f'bash "{home}/.claude/helpers/agent-spawn-guard.sh"'}]},
+        {"matcher": "mcp__.*",
+         "hooks": [{"type": "command",
+                    "command": f'bash "{home}/.claude/helpers/mcp-interceptor.sh"'}]}
     ]
 }
 
@@ -74,10 +80,12 @@ bash "$HELPERS/integrity-check.sh" init >/dev/null 2>&1 || true
 echo -e "  ${GREEN}✓${NC} integrity manifest baselined"
 
 echo
-echo -e "${GREEN}✅ aegis installed. 4 layers active.${NC}"
-echo "   L1 injection-detector   — PostToolUse(WebFetch|WebSearch|Read)"
+echo -e "${GREEN}✅ aegis installed. 6 layers active.${NC}"
+echo "   L1 injection-detector   — PostToolUse(WebFetch|WebSearch|Read|mcp__*)"
 echo "   L2 network-egress       — PreToolUse(Bash)"
-echo "   L3 secrets-scanner      — PreToolUse(Write|Edit|MultiEdit|Bash)"
+echo "   L3 secrets-scanner      — PreToolUse(Write|Edit|MultiEdit|NotebookEdit|Bash)"
 echo "   L4 integrity-manifest   — bash $HELPERS/integrity-check.sh verify"
+echo "   L5 agent-spawn-guard    — PreToolUse(Task)"
+echo "   L6 mcp-interceptor      — PreToolUse(mcp__*)"
 echo
 echo "   adversarial suite:  bash $AEGIS_DIR/benchmarks/adversarial.sh"

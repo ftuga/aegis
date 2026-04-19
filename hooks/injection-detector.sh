@@ -45,8 +45,8 @@ PATTERNS = [
     (r"(?i)\[(system|admin|root)\]\s*:", "jailbreak:fake-role"),
 
     # Exfiltración / ejecución remota
-    (r"curl\s+[^\s]*\|\s*(bash|sh|zsh|python)", "exec:pipe-shell"),
-    (r"wget\s+[^\s]*\s*-O-?\s*\|\s*(bash|sh)", "exec:wget-pipe"),
+    (r"curl\s+\S+\s*\|\s*(bash|sh|zsh|python)", "exec:pipe-shell"),
+    (r"wget\s+\S+\s*-O-?\s*\|\s*(bash|sh)", "exec:wget-pipe"),
     (r"(?i)(nc|netcat)\s+[\w\.-]+\s+\d+", "exec:netcat"),
     (r"(?i)eval\s*\(\s*(atob|base64)", "exec:eval-b64"),
     (r"/etc/passwd|/etc/shadow|~/\.ssh/id_", "exfil:sensitive-path"),
