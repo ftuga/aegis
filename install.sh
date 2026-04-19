@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Aegis installer — registers 4 security hooks into ~/.claude/settings.json.
+# aegis installer — registers 4 security hooks into ~/.claude/settings.json
 set -euo pipefail
 
 AEGIS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,29 +8,28 @@ HELPERS="$CLAUDE_DIR/helpers"
 CONFIG="$CLAUDE_DIR/config"
 SETTINGS="$CLAUDE_DIR/settings.json"
 
-GREEN="\033[0;32m"; BLUE="\033[0;34m"; YELLOW="\033[0;33m"; RED="\033[0;31m"; NC="\033[0m"
+GREEN="\033[0;32m"; BLUE="\033[0;34m"; YELLOW="\033[0;33m"; NC="\033[0m"
 
-echo -e "${BLUE}⬡ Aegis installer${NC}"
+echo -e "${BLUE}⬡ aegis installer${NC}"
 
-# 1. Paths
 mkdir -p "$HELPERS" "$CONFIG" "$CLAUDE_DIR/data"
 
-# 2. Copy scripts
-for f in injection-detector-hook.sh network-egress-hook.sh secrets-scanner-hook.sh integrity-check.sh; do
-    cp "$AEGIS_DIR/src/$f" "$HELPERS/$f"
+# 1. copy hook scripts
+for f in injection-detector.sh network-egress.sh secrets-scanner.sh integrity-check.sh; do
+    cp "$AEGIS_DIR/hooks/$f" "$HELPERS/$f"
     chmod +x "$HELPERS/$f"
     echo -e "  ${GREEN}✓${NC} $f → $HELPERS/"
 done
 
-# 3. Seed allowlist (only if missing)
+# 2. seed allowlist if missing
 if [[ ! -f "$CONFIG/network-allowlist.txt" ]]; then
-    cp "$AEGIS_DIR/config/network-allowlist.txt.example" "$CONFIG/network-allowlist.txt"
+    cp "$AEGIS_DIR/config/network-allowlist.example.txt" "$CONFIG/network-allowlist.txt"
     echo -e "  ${GREEN}✓${NC} seeded $CONFIG/network-allowlist.txt"
 else
     echo -e "  ${YELLOW}~${NC} $CONFIG/network-allowlist.txt already exists — left untouched"
 fi
 
-# 4. Register hooks in settings.json (merge-aware)
+# 3. register hooks in settings.json (merge-aware)
 python3 - <<PYEOF
 import json, os
 from pathlib import Path
@@ -42,15 +41,15 @@ hooks_to_add = {
     "PostToolUse": [
         {"matcher": "WebFetch|WebSearch|Read",
          "hooks": [{"type": "command",
-                    "command": f'bash "{home}/.claude/helpers/injection-detector-hook.sh"'}]}
+                    "command": f'bash "{home}/.claude/helpers/injection-detector.sh"'}]}
     ],
     "PreToolUse": [
         {"matcher": "Bash",
          "hooks": [{"type": "command",
-                    "command": f'bash "{home}/.claude/helpers/network-egress-hook.sh"'}]},
+                    "command": f'bash "{home}/.claude/helpers/network-egress.sh"'}]},
         {"matcher": "Write|Edit|MultiEdit|Bash",
          "hooks": [{"type": "command",
-                    "command": f'bash "{home}/.claude/helpers/secrets-scanner-hook.sh"'}]}
+                    "command": f'bash "{home}/.claude/helpers/secrets-scanner.sh"'}]}
     ]
 }
 
@@ -70,15 +69,15 @@ settings_path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
 print("  ✓ hooks registered in", settings_path)
 PYEOF
 
-# 5. Baseline integrity manifest
+# 4. baseline integrity manifest
 bash "$HELPERS/integrity-check.sh" init >/dev/null 2>&1 || true
 echo -e "  ${GREEN}✓${NC} integrity manifest baselined"
 
 echo
-echo -e "${GREEN}✅ Aegis installed. 4 layers active.${NC}"
+echo -e "${GREEN}✅ aegis installed. 4 layers active.${NC}"
 echo "   L1 injection-detector   — PostToolUse(WebFetch|WebSearch|Read)"
 echo "   L2 network-egress       — PreToolUse(Bash)"
 echo "   L3 secrets-scanner      — PreToolUse(Write|Edit|MultiEdit|Bash)"
-echo "   L4 integrity-manifest   — run: bash $HELPERS/integrity-check.sh verify"
+echo "   L4 integrity-manifest   — bash $HELPERS/integrity-check.sh verify"
 echo
-echo "   Adversarial self-test (optional):  bash $AEGIS_DIR/tests/adversarial.sh"
+echo "   adversarial suite:  bash $AEGIS_DIR/benchmarks/adversarial.sh"
